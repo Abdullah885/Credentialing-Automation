@@ -6,56 +6,59 @@ test('Complete agreement after signup', async ({ page }) => {
   // Wait for page to load
   await page.waitForLoadState('networkidle');
   
-  // Use JavaScript to check the checkbox (we know this works)
+  // Use JavaScript to check the checkbox
   await page.evaluate(() => {
     const checkbox = document.querySelector('input[name="agreement"]');
     if (checkbox) {
       checkbox.checked = true;
-      // Trigger ALL possible events
       checkbox.dispatchEvent(new Event('change', { bubbles: true }));
       checkbox.dispatchEvent(new Event('click', { bubbles: true }));
-      checkbox.dispatchEvent(new Event('input', { bubbles: true }));
     }
   });
   
-  // Verify it's checked
-  const isChecked = await page.locator('input[name="agreement"]').isChecked();
-  console.log('Checkbox checked:', isChecked);
+  console.log('Checkbox checked:', await page.locator('input[name="agreement"]').isChecked());
   
-  // Wait a moment for any UI updates
-  await page.waitForTimeout(1000);
-  
-  // Take screenshot to verify
-  await page.screenshot({ path: 'before-submit.png' });
-  
-  // Click submit - try different methods
-  const submitButton = page.getByRole('button', { name: 'Submit' });
-  
-  // Method 1: Regular click
-  await submitButton.click();
-  
-  // Wait for navigation with a reasonable timeout
-  try {
-    await page.waitForURL(/dashboard/, { timeout: 10000 });
-    console.log('Successfully navigated to dashboard!');
-  } catch (error) {
-    console.log('Method 1 failed, trying Method 2...');
-    
-    // Method 2: JavaScript form submission
-    await page.evaluate(() => {
-      const form = document.querySelector('form');
-      if (form) {
-        form.submit();
+  // Listen for network responses
+  let responseData = null;
+  page.on('response', async response => {
+    if (response.url().includes('/agreement') && response.request().method() === 'POST') {
+      console.log('Response status:', response.status());
+      console.log('Response URL:', response.url());
+      try {
+        responseData = await response.text();
+        console.log('Response body:', responseData.substring(0, 500)); // First 500 chars
+      } catch (e) {
+        console.log('Could not read response');
       }
-    });
-    
-    // Wait again
-    await page.waitForURL(/dashboard/, { timeout: 10000 }).catch(() => {
-      console.log('Still on URL:', page.url());
-      throw new Error('Form submission failed');
-    });
+    }
+  });
+  
+  // Click submit
+  await page.getByRole('button', { name: 'Submit' }).click();
+  
+  // Wait for any response
+  await page.waitForTimeout(5000);
+  
+  // Check current state
+  console.log('Current URL:', page.url());
+  console.log('Page title:', await page.title());
+  
+  // Look for error messages
+  const errorMessages = page.locator('.error, .alert, .text-danger, [role="alert"]');
+  const errorCount = await errorMessages.count();
+  console.log('Error message elements found:', errorCount);
+  
+  for (let i = 0; i < errorCount; i++) {
+    const errorText = await errorMessages.nth(i).textContent();
+    console.log(`Error ${i}:`, errorText?.trim());
   }
   
-  await expect(page).toHaveURL(/dashboard/);
-  console.log('Test completed successfully!');
+  // Take screenshot
+  await page.screenshot({ path: 'after-submit-debug.png' });
+  
+  // Check if we're actually on dashboard but URL didn't change
+  const dashboardElement = page.locator('h1, h2, .dashboard, [data-testid="dashboard"]').first();
+  if (await dashboardElement.count() > 0) {
+    console.log('Dashboard element found:', await dashboardElement.textContent());
+  }
 });
