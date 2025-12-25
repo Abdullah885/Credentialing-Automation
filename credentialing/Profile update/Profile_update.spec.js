@@ -11,8 +11,8 @@ test('Profile Update', async ({ page }) => {
 
   // Fill Practice Info
   await page.getByRole('textbox', { name: 'Practice Name *' }).fill('Premium');
-  await page.getByRole('textbox', { name: 'Group NPI *', exact: true }).fill('1234567890');
-  await page.getByRole('textbox', { name: 'TIN/EIN *' }).fill('1234567890');
+  await page.locator('#group_npi-0').fill('1234567890');
+  await page.getByRole('textbox', { name: 'TIN/EIN *' }).fill('0987654321');
 
   // Open Specialty dropdown
    await page.locator('.select__input-container').click();
@@ -27,14 +27,16 @@ test('Profile Update', async ({ page }) => {
 
   // DBA Section
   await page.getByRole('textbox', { name: 'DBA *' }).fill('Chelsea');
-  await page.getByRole('textbox', { name: 'Group Npi *', exact: true }).fill('1234567890');
-  await page.getByRole('textbox', { name: 'TIN *' }).fill('123456789');
+  await page.getByRole('textbox', { name: 'TIN *' }).fill('222222222');
+  // Contact Info
+  await page.getByRole('textbox', { name: 'Contact No *' }).fill('5555555555');
+  await page.locator('#group_npi-0').fill('3333333333');
+  
 
   // Proceed
   await page.getByRole('button', { name: 'Proceed to Providers' }).click();
 
-  // Contact Info
-  await page.getByRole('textbox', { name: 'Contact No *' }).fill('1234567890');
+  
 
   // Final proceed
   await page.getByRole('button', { name: 'Proceed to Providers' }).click();
